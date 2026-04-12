@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GhostQuestX — Hunter System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#4f8ef7;--blue2:#6aa0ff;--gold:#fbbf24;--purple:#7b5cf6;
+  --bg:#020810;--panel:rgba(5,12,28,0.88);
+  --t1:#e8f2ff;--t2:#7a96c8;--t3:#2e4470;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:'Rajdhani',sans-serif;color:var(--t1);overflow-x:hidden;cursor:none}
+
+/* ── CUSTOM CURSOR ── */
+#cursor{position:fixed;width:10px;height:10px;background:var(--blue);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .08s,width .2s,height .2s;mix-blend-mode:screen;box-shadow:0 0 12px var(--blue),0 0 24px rgba(79,142,247,.4)}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(79,142,247,.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .18s cubic-bezier(.34,1.4,.64,1)}
+body:hover #cursor{width:10px;height:10px}
+a:hover~#cursor,button:hover~#cursor{width:18px;height:18px}
+
+/* ── CANVAS ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ── SCANLINES ── */
+.scanlines{position:fixed;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,20,.018) 3px,rgba(0,0,20,.018) 6px)}
+
+/* ── INTRO ── */
+#intro{position:fixed;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.intro-particles{position:absolute;inset:0;pointer-events:none}
+.i-pt{position:absolute;border-radius:50%;background:var(--blue);opacity:0;animation:ipt linear infinite}
+@keyframes ipt{0%{opacity:0;transform:translateY(110vh)}15%{opacity:.7}85%{opacity:.15}100%{opacity:0;transform:translateY(-60px)}}
+.intro-scan{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4f8ef7,#fff,#4f8ef7,transparent);box-shadow:0 0 40px #4f8ef7,0 0 80px rgba(79,142,247,.4);animation:iscan 2s cubic-bezier(.4,0,.2,1) forwards;top:0;opacity:0}
+@keyframes iscan{0%{top:-4px;opacity:0}5%{opacity:1}100%{top:100%;opacity:.1}}
+.intro-box{position:relative;z-index:10;text-align:center;padding:24px;width:100%;max-width:600px}
+.intro-sys{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:5px;color:rgba(79,142,247,.6);margin-bottom:18px;opacity:0;transition:opacity .5s}
+.intro-sys.show{opacity:1}
+.intro-title{font-family:'Orbitron',monospace;font-size:clamp(32px,8vw,72px);font-weight:900;color:#fff;letter-spacing:4px;line-height:1.1;text-shadow:0 0 40px rgba(79,142,247,.5),0 0 80px rgba(79,142,247,.2);opacity:0;transform:scale(.8);transition:all .8s cubic-bezier(.34,1.3,.64,1)}
+.intro-title.show{opacity:1;transform:scale(1)}
+.intro-sub{font-family:'Orbitron',monospace;font-size:clamp(10px,2vw,14px);letter-spacing:3px;color:var(--blue);margin-top:14px;opacity:0;transition:opacity .5s .3s}
+.intro-sub.show{opacity:1}
+.intro-arise{font-family:'Orbitron',monospace;font-size:clamp(44px,12vw,96px);font-weight:900;color:var(--blue);letter-spacing:14px;text-shadow:0 0 50px var(--blue),0 0 100px rgba(79,142,247,.35);opacity:0;transform:scale(.4) translateY(20px);transition:all .9s cubic-bezier(.34,1.6,.64,1)}
+.intro-arise.show{opacity:1;transform:scale(1) translateY(0)}
+.intro-bar{width:0%;height:2px;background:linear-gradient(90deg,transparent,var(--blue),var(--gold),var(--blue),transparent);margin:20px auto 0;transition:width 1.5s ease;border-radius:2px;max-width:400px}
+.intro-bar.full{width:80%}
+.intro-skip{position:absolute;bottom:28px;right:28px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.25);cursor:pointer;border:1px solid rgba(255,255,255,.1);padding:7px 14px;border-radius:4px;transition:all .2s;opacity:0;animation:fadein .5s 1s forwards}
+.intro-skip:hover{color:var(--blue);border-color:var(--blue-bdr)}
+@keyframes fadein{to{opacity:1}}
+
+/* ── SITE ── */
+#site{opacity:0;transition:opacity .8s}
+#site.visible{opacity:1}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:rgba(2,8,16,.92);border-bottom:1px solid rgba(79,142,247,.18);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 40px;transition:all .3s}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-brand-icon{font-size:22px}
+.nav-brand-text{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:3px;color:var(--blue)}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-link{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--t2);padding:8px 14px;border-radius:5px;text-decoration:none;transition:all .2s;background:none;border:none;cursor:pointer}
+.nav-link:hover{color:var(--blue);background:rgba(79,142,247,.08)}
+
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;padding:80px 24px 40px;text-align:center}
+.hero-inner{max-width:860px;width:100%}
+.hero-eyebrow{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;color:var(--blue);margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:10px}
+.hero-eyebrow-line{flex:1;max-width:80px;height:1px;background:linear-gradient(90deg,transparent,var(--blue))}
+.hero-eyebrow-line.r{background:linear-gradient(90deg,var(--blue),transparent)}
+.hero-title{font-family:'Orbitron',monospace;font-size:clamp(40px,9vw,88px);font-weight:900;color:var(--t1);letter-spacing:2px;line-height:1.05;margin-bottom:10px}
+.hero-title .glow{color:var(--blue);text-shadow:0 0 30px rgba(79,142,247,.6),0 0 60px rgba(79,142,247,.25)}
+.hero-title .gold{color:var(--gold);text-shadow:0 0 30px rgba(251,191,36,.5),0 0 60px rgba(251,191,36,.2)}
+.hero-tagline{font-family:'Orbitron',monospace;font-size:clamp(10px,2vw,13px);letter-spacing:3px;color:var(--t2);margin-bottom:10px}
+.hero-quote{font-family:'Orbitron',monospace;font-size:clamp(12px,2.5vw,15px);color:var(--blue);letter-spacing:1px;padding:12px 20px;background:rgba(79,142,247,.07);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;display:inline-block;margin:18px 0 32px;text-align:left;max-width:480px;animation:quote-cycle 20s infinite}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+/* ── BUTTONS ── */
+.btn{font-family:'Orbitron',monospace;font-weight:700;letter-spacing:2px;padding:14px 28px;border-radius:8px;border:none;cursor:pointer;transition:all .22s;text-decoration:none;display:inline-flex;align-items:center;gap:9px;font-size:10px;position:relative;overflow:hidden}
+.btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .2s}
+.btn:hover::before{background:rgba(255,255,255,.06)}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 0 20px rgba(79,142,247,.35),0 4px 20px rgba(0,0,0,.3)}
+.btn-primary:hover{background:var(--blue2);box-shadow:0 0 40px rgba(79,142,247,.55),0 8px 30px rgba(0,0,0,.3);transform:translateY(-2px)}
+.btn-gold{background:linear-gradient(135deg,#f59e0b,var(--gold));color:#000;box-shadow:0 0 20px rgba(251,191,36,.35),0 4px 20px rgba(0,0,0,.3)}
+.btn-gold:hover{box-shadow:0 0 40px rgba(251,191,36,.55);transform:translateY(-2px)}
+.btn-outline{background:transparent;color:var(--t2);border:1.5px solid rgba(79,142,247,.3)}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,.07)}
+.btn-ghost{background:rgba(255,255,255,.04);color:var(--t2);border:1px solid rgba(255,255,255,.08)}
+.btn-ghost:hover{color:var(--t1);background:rgba(255,255,255,.08)}
+.btn-icon{font-size:16px}
+
+/* ── SECTION ── */
+section{position:relative;z-index:2;padding:90px 24px}
+.container{max-width:1100px;margin:0 auto}
+.section-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.section-label::before{content:'◈';font-size:12px}
+.section-title{font-family:'Orbitron',monospace;font-size:clamp(26px,5vw,46px);font-weight:700;color:var(--t1);margin-bottom:16px;line-height:1.2}
+.section-sub{font-size:16px;color:var(--t2);max-width:600px;margin-bottom:50px;line-height:1.7}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(79,142,247,.25),transparent);margin:0 auto;max-width:800px}
+
+/* ── DOWNLOAD CARDS ── */
+.download-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-bottom:30px}
+.dl-card{background:var(--panel);border:1px solid rgba(79,142,247,.2);border-radius:16px;padding:32px 28px;position:relative;overflow:hidden;transition:all .3s;cursor:default}
+.dl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:.5}
+.dl-card::after{content:'';position:absolute;bottom:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(79,142,247,.06) 0%,transparent 70%)}
+.dl-card:hover{border-color:rgba(79,142,247,.45);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 30px rgba(79,142,247,.1)}
+.dl-card.gold{border-color:rgba(251,191,36,.2)}
+.dl-card.gold::before{background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.dl-card.gold::after{background:radial-gradient(circle,rgba(251,191,36,.06) 0%,transparent 70%)}
+.dl-card.gold:hover{border-color:rgba(251,191,36,.45);box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 30px rgba(251,191,36,.1)}
+.dl-platform{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.dl-platform-icon{font-size:38px;line-height:1}
+.dl-platform-name{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--t1);letter-spacing:1px}
+.dl-platform-os{font-size:11px;color:var(--t2);margin-top:2px;font-family:'Orbitron',monospace;letter-spacing:1px}
+.dl-desc{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:22px}
+.dl-meta{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.dl-tag{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 9px;border-radius:4px;background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);color:var(--blue)}
+.dl-tag.gold-tag{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.2);color:var(--gold)}
+
+/* ── FEATURES GRID ── */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.feat-card{background:var(--panel);border:1px solid rgba(79,142,247,.14);border-radius:12px;padding:22px;transition:all .25s;position:relative;overflow:hidden}
+.feat-card:hover{border-color:rgba(79,142,247,.35);transform:translateY(-3px);background:rgba(5,15,35,.95)}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(79,142,247,.4),transparent);opacity:0;transition:opacity .25s}
+.feat-card:hover::before{opacity:1}
+.feat-icon{font-size:28px;margin-bottom:12px}
+.feat-title{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--t1);margin-bottom:7px}
+.feat-desc{font-size:13px;color:var(--t2);line-height:1.6}
+
+/* ── RANK SHOWCASE ── */
+.ranks-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:40px 0}
+.rank-card{width:110px;padding:18px 12px;text-align:center;border-radius:10px;border:1.5px solid;background:rgba(5,12,28,.8);transition:all .3s;cursor:default;position:relative;overflow:hidden}
+.rank-card:hover{transform:scale(1.08) translateY(-4px)}
+.rank-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,currentColor,transparent 65%);opacity:.06;transition:opacity .3s}
+.rank-card:hover::after{opacity:.12}
+.rank-letter{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;line-height:1;margin-bottom:6px;transition:all .3s}
+.rank-card:hover .rank-letter{filter:brightness(1.4) drop-shadow(0 0 10px currentColor)}
+.rank-name{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px}
+.rank-title{font-size:10px;color:var(--t2);margin-top:3px}
+
+/* ── GITHUB SECTION ── */
+.github-card{background:var(--panel);border:1px solid rgba(79,142,247,.2);border-radius:16px;padding:40px;text-align:center;position:relative;overflow:hidden;max-width:700px;margin:0 auto}
+.github-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),var(--gold),var(--blue),transparent);opacity:.6}
+.github-icon{font-size:56px;margin-bottom:16px;display:block}
+.github-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;letter-spacing:2px;color:var(--t1);margin-bottom:10px}
+.github-sub{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:28px}
+.github-url{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;color:var(--blue);padding:9px 16px;background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:6px;display:inline-block;margin-bottom:24px;word-break:break-all}
+
+/* ── PARTICLES SECTION ── */
+.particles-ring{position:relative;height:3px;background:linear-gradient(90deg,transparent,var(--blue),var(--purple),var(--gold),var(--blue),transparent);opacity:.4;margin:20px 0;border-radius:2px}
+
+/* ── FOOTER ── */
+footer{position:relative;z-index:2;padding:40px 24px 28px;border-top:1px solid rgba(79,142,247,.12);text-align:center}
+.footer-logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:3px;color:var(--blue);margin-bottom:8px}
+.footer-quote{font-size:13px;color:var(--t2);font-style:italic;margin-bottom:18px}
+.footer-credit{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--blue);opacity:.45}
+.footer-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);display:inline-block;margin:0 8px;vertical-align:middle;animation:gp 2s ease-in-out infinite}
+@keyframes gp{0%,100%{box-shadow:0 0 0 0 rgba(79,142,247,.5)}50%{box-shadow:0 0 0 5px rgba(79,142,247,0)}}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(28px);transition:all .65s cubic-bezier(.4,0,.2,1)}
+.reveal.visible{opacity:1;transform:none}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+.reveal-delay-4{transition-delay:.4s}
+
+/* ── 3D TILT CARDS ── */
+.tilt-card{transform-style:preserve-3d;transition:transform .1s ease-out}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .hero-btns{flex-direction:column;align-items:center}
+  .btn{width:100%;max-width:320px;justify-content:center}
+  section{padding:60px 16px}
+  .rank-card{width:90px}
+}
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- 3D Canvas -->
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+
+<!-- ════════ INTRO ════════ -->
+<div id="intro">
+  <div class="intro-particles" id="introParticles"></div>
+  <div class="intro-scan" id="introScan"></div>
+  <div class="intro-box" id="introBox">
+    <!-- Steps injected by JS -->
+  </div>
+  <div class="intro-skip" id="introSkip" onclick="skipIntro()">SKIP ▶</div>
+</div>
+
+<!-- ════════ SITE ════════ -->
+<div id="site">
+
+  <!-- NAV -->
+  <nav id="mainNav">
+    <a class="nav-brand" href="#hero">
+      <span class="nav-brand-icon">👻</span>
+      <span class="nav-brand-text">GHOSTQUESTX</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#download">DOWNLOAD</a>
+      <a class="nav-link" href="#features">FEATURES</a>
+      <a class="nav-link" href="#ranks">RANKS</a>
+      <a class="nav-link" href="#github">GITHUB</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow reveal">
+        <div class="hero-eyebrow-line"></div>
+        ◈ HUNTER SYSTEM v2.0 ◈
+        <div class="hero-eyebrow-line r"></div>
+      </div>
+      <h1 class="hero-title reveal reveal-delay-1">
+        <span class="glow">GHOST</span><span class="gold">QUEST</span><span class="glow">X</span>
+      </h1>
+      <div class="hero-tagline reveal reveal-delay-2">THE SOLO LEVELING PRODUCTIVITY SYSTEM</div>
+      <div class="hero-quote reveal reveal-delay-3" id="heroQuote">"I alone level up."</div>
+      <div class="hero-btns reveal reveal-delay-4">
+        <a class="btn btn-primary" href="#download">
+          <span class="btn-icon">⬇</span> DOWNLOAD NOW
+        </a>
+        <a class="btn btn-outline" href="#features">
+          <span class="btn-icon">⚔</span> VIEW FEATURES
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/g3175318-cmd" target="_blank">
+          <span class="btn-icon">🐙</span> GITHUB
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- DOWNLOAD -->
+  <section id="download">
+    <div class="container">
+      <div class="section-label reveal">PLATFORM RELEASES</div>
+      <h2 class="section-title reveal reveal-delay-1">Download & Install</h2>
+      <p class="section-sub reveal reveal-delay-2">Available on Windows and Android. One tap install. No internet required after setup — fully offline and private.</p>
+
+      <div class="download-grid">
+
+        <!-- WINDOWS -->
+        <div class="dl-card tilt-card reveal reveal-delay-1">
+          <div class="dl-platform">
+            <span class="dl-platform-icon">🖥️</span>
+            <div>
+              <div class="dl-platform-name">WINDOWS</div>
+              <div class="dl-platform-os">DESKTOP APP</div>
+            </div>
+          </div>
+          <p class="dl-desc">Full-featured desktop experience. Custom frameless window, sidebar navigation, keyboard shortcuts, dark/light mode. Built with Electron.</p>
+          <div class="dl-meta">
+            <span class="dl-tag">v2.0.0</span>
+            <span class="dl-tag">ELECTRON</span>
+            <span class="dl-tag">WIN 10/11</span>
+            <span class="dl-tag">OFFLINE</span>
+          </div>
+          <a class="btn btn-primary" href="https://github.com/g3175318-cmd/ghostquestX/releases/download/ghostquestX-windows/GhostQuestX.Setup.2.0.0.exe" download>
+            <span class="btn-icon">⬇</span> DOWNLOAD .EXE
+          </a>
+        </div>
+
+        <!-- ANDROID -->
+        <div class="dl-card gold tilt-card reveal reveal-delay-2">
+          <div class="dl-platform">
+            <span class="dl-platform-icon">📱</span>
+            <div>
+              <div class="dl-platform-name">ANDROID</div>
+              <div class="dl-platform-os">MOBILE APP</div>
+            </div>
+          </div>
+          <p class="dl-desc">Native Android app. Bottom navigation, 48px touch targets, custom particle animations, rank-up overlays and the full S-Rank celebration.</p>
+          <div class="dl-meta">
+            <span class="dl-tag gold-tag">v2.0</span>
+            <span class="dl-tag gold-tag">KOTLIN</span>
+            <span class="dl-tag gold-tag">ANDROID 7+</span>
+            <span class="dl-tag gold-tag">OFFLINE</span>
+          </div>
+          <a class="btn btn-gold" href="https://github.com/g3175318-cmd/ghostquestX/releases/download/ghostquestX-android/app-debug.apk" download>
+            <span class="btn-icon">⬇</span> DOWNLOAD .APK
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Install note -->
+      <div style="background:rgba(79,142,247,.05);border:1px solid rgba(79,142,247,.15);border-radius:10px;padding:18px 22px;max-width:700px;margin:0 auto" class="reveal">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--blue);margin-bottom:8px">◈ INSTALLATION NOTES</div>
+        <div style="font-size:13px;color:var(--t2);line-height:1.8">
+          <strong style="color:var(--t1)">Windows:</strong> Run the .exe installer. If SmartScreen warns, click "More info → Run anyway" — this is a self-signed app.<br>
+          <strong style="color:var(--t1)">Android:</strong> Enable "Install from unknown sources" in Settings, then tap the .apk to install.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <div class="section-label reveal">HUNTER SYSTEM FEATURES</div>
+      <h2 class="section-title reveal reveal-delay-1">Everything You Need to<br><span style="color:var(--blue)">Level Up</span></h2>
+      <p class="section-sub reveal reveal-delay-2">A full productivity suite themed around the Solo Leveling universe. Track quests, manage your routine, record mission notes — and watch your rank rise.</p>
+
+      <div class="features-grid">
+        <div class="feat-card tilt-card reveal reveal-delay-1">
+          <div class="feat-icon">🎬</div>
+          <div class="feat-title">OPENING CINEMATIC</div>
+          <div class="feat-desc">Every session begins with a dramatic 6-step awakening sequence — scan lines, stat reveal, and the iconic "ARISE" moment.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-2">
+          <div class="feat-icon">⚔️</div>
+          <div class="feat-title">DAILY QUESTS</div>
+          <div class="feat-desc">Add, complete and delete your daily objectives. Each completion triggers animated rank-up feedback.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-3">
+          <div class="feat-icon">🏆</div>
+          <div class="feat-title">6-TIER RANK SYSTEM</div>
+          <div class="feat-desc">E → D → C → B → A → S. Your rank rises as you complete tasks. Each unlock triggers a unique animated celebration.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-4">
+          <div class="feat-icon">⭐</div>
+          <div class="feat-title">S-RANK CELEBRATION</div>
+          <div class="feat-desc">Complete every single quest to unlock the grand S-Rank animation — particle burst, glowing S badge, and ARISE.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-1">
+          <div class="feat-icon">📅</div>
+          <div class="feat-title">WEEKLY ROUTINE</div>
+          <div class="feat-desc">Build your school or work schedule day-by-day. Time-sorted, editable, and always at hand.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-2">
+          <div class="feat-icon">📝</div>
+          <div class="feat-title">TWO-SECTION NOTES</div>
+          <div class="feat-desc">Mission Briefs for task details. Personal Logs for thoughts and reflections. Both sections persist offline.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-3">
+          <div class="feat-icon">🌙</div>
+          <div class="feat-title">DARK / LIGHT MODE</div>
+          <div class="feat-desc">Deep dark theme by default. Switch to a clean blue-on-white light theme anytime — your preference is saved.</div>
+        </div>
+        <div class="feat-card tilt-card reveal reveal-delay-4">
+          <div class="feat-icon">💾</div>
+          <div class="feat-title">FULLY OFFLINE</div>
+          <div class="feat-desc">Zero internet required after install. All data stored locally — private, fast, and always available.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- RANKS -->
+  <section id="ranks">
+    <div class="container" style="text-align:center">
+      <div class="section-label reveal" style="justify-content:center">THE RANK SYSTEM</div>
+      <h2 class="section-title reveal reveal-delay-1">Rise Through the Tiers</h2>
+      <p class="section-sub reveal reveal-delay-2" style="margin:0 auto 0">Your rank updates automatically as you complete your daily quests. Complete all of them to claim S-Rank — Shadow Monarch.</p>
+
+      <div class="ranks-grid reveal reveal-delay-3">
+        <div class="rank-card" style="color:#6b7280;border-color:#6b7280">
+          <div class="rank-letter">E</div>
+          <div class="rank-name">E-RANK</div>
+          <div class="rank-title">Iron Hunter</div>
+        </div>
+        <div class="rank-card" style="color:#22c55e;border-color:#22c55e">
+          <div class="rank-letter">D</div>
+          <div class="rank-name">D-RANK</div>
+          <div class="rank-title">Bronze Hunter</div>
+        </div>
+        <div class="rank-card" style="color:#38bdf8;border-color:#38bdf8">
+          <div class="rank-letter">C</div>
+          <div class="rank-name">C-RANK</div>
+          <div class="rank-title">Silver Hunter</div>
+        </div>
+        <div class="rank-card" style="color:#a855f7;border-color:#a855f7">
+          <div class="rank-letter">B</div>
+          <div class="rank-name">B-RANK</div>
+          <div class="rank-title">Gold Hunter</div>
+        </div>
+        <div class="rank-card" style="color:#f97316;border-color:#f97316">
+          <div class="rank-letter">A</div>
+          <div class="rank-name">A-RANK</div>
+          <div class="rank-title">Platinum Hunter</div>
+        </div>
+        <div class="rank-card" style="color:#fbbf24;border-color:#fbbf24;background:rgba(251,191,36,.04)">
+          <div class="rank-letter" style="animation:sglow 1.4s ease-in-out infinite alternate">S</div>
+          <div class="rank-name">S-RANK</div>
+          <div class="rank-title">Shadow Monarch</div>
+        </div>
+      </div>
+
+      <p style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--t3);margin-top:8px" class="reveal">COMPLETE 0% → 16% → 33% → 50% → 66% → 100% OF YOUR QUESTS</p>
+    </div>
+  </section>
+
+  <style>@keyframes sglow{from{text-shadow:0 0 20px #fbbf24}to{text-shadow:0 0 50px #fbbf24,0 0 80px rgba(251,191,36,.4)}}</style>
+
+  <div class="divider"></div>
+
+  <!-- GITHUB -->
+  <section id="github">
+    <div class="container">
+      <div class="section-label reveal" style="justify-content:center">OPEN SOURCE</div>
+      <div class="github-card reveal reveal-delay-1">
+        <span class="github-icon">🐙</span>
+        <div class="github-title">VIEW ON GITHUB</div>
+        <p class="github-sub">All releases, source code and updates are available on GitHub. Star the project, report issues, or follow development.</p>
+        <div class="github-url">github.com/g3175318-cmd</div>
+        <a class="btn btn-primary" href="https://github.com/g3175318-cmd" target="_blank">
+          <span class="btn-icon">🐙</span> OPEN GITHUB PROFILE
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">👻 GHOSTQUESTX</div>
+    <div class="footer-quote">"From the void, a monarch is born."</div>
+    <div style="margin-bottom:14px">
+      <a class="btn btn-ghost" href="#download" style="font-size:9px;padding:8px 14px">WINDOWS</a>
+      <a class="btn btn-ghost" href="#download" style="font-size:9px;padding:8px 14px">ANDROID</a>
+      <a class="btn btn-ghost" href="https://github.com/g3175318-cmd" target="_blank" style="font-size:9px;padding:8px 14px">GITHUB</a>
+    </div>
+    <div class="footer-credit">
+      <span class="footer-dot"></span>
+      ✦ Developed By Amlan Dey ✦
+      <span class="footer-dot"></span>
+    </div>
+  </footer>
+
+</div><!-- /site -->
+
+<script>
+/* ════════════════════════════════════
+   THREE.JS-STYLE 3D CANVAS (vanilla)
+════════════════════════════════════ */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+  if (!gl) {
+    // Fallback: CSS particle system
+    return;
+  }
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const VS = `
+    attribute vec3 pos;
+    attribute float size;
+    attribute float alpha;
+    uniform float time;
+    uniform mat4 proj;
+    varying float vAlpha;
+    void main() {
+      vec3 p = pos;
+      p.y = mod(p.y + time * 0.08 * (0.3 + alpha * 0.5), 4.0) - 2.0;
+      p.x += sin(time * 0.3 + pos.z * 2.0) * 0.04;
+      gl_Position = proj * vec4(p, 1.0);
+      gl_PointSize = size * (1.8 / (1.0 + abs(p.z) * 0.5));
+      vAlpha = alpha * (0.5 - abs(p.y) * 0.18);
+    }
+  `;
+  const FS = `
+    precision mediump float;
+    varying float vAlpha;
+    uniform vec3 color;
+    void main() {
+      float d = distance(gl_PointCoord, vec2(0.5));
+      if (d > 0.5) discard;
+      gl_FragColor = vec4(color, vAlpha * (1.0 - d * 1.6));
+    }
+  `;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const N = 600;
+  const pos = new Float32Array(N * 3);
+  const sizes = new Float32Array(N);
+  const alphas = new Float32Array(N);
+
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random() - 0.5) * 6;
+    pos[i*3+1] = (Math.random() - 0.5) * 4;
+    pos[i*3+2] = (Math.random() - 0.5) * 4;
+    sizes[i]   = 1.5 + Math.random() * 3;
+    alphas[i]  = 0.1 + Math.random() * 0.35;
+  }
+
+  function createBuf(data) {
+    const b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    return b;
+  }
+  const posBuf  = createBuf(pos);
+  const sizeBuf = createBuf(sizes);
+  const alphaBuf= createBuf(alphas);
+
+  const aPos   = gl.getAttribLocation(prog, 'pos');
+  const aSize  = gl.getAttribLocation(prog, 'size');
+  const aAlpha = gl.getAttribLocation(prog, 'alpha');
+  const uTime  = gl.getUniformLocation(prog, 'time');
+  const uProj  = gl.getUniformLocation(prog, 'proj');
+  const uColor = gl.getUniformLocation(prog, 'color');
+
+  function ortho(l,r,b,t,n,f) {
+    return new Float32Array([
+      2/(r-l),0,0,0, 0,2/(t-b),0,0, 0,0,-2/(f-n),0,
+      -(r+l)/(r-l),-(t+b)/(t-b),-(f+n)/(f-n),1
+    ]);
+  }
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+  let t = 0;
+  let mouseX = 0, mouseY = 0;
+  window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+  function frame() {
+    t += 0.008;
+    const aspect = canvas.width / canvas.height;
+    const proj = ortho(-aspect*2, aspect*2, -2, 2, -10, 10);
+
+    gl.clearColor(0.01, 0.03, 0.07, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Slight camera tilt toward mouse
+    const mx = (mouseX / canvas.width  - 0.5) * 0.06;
+    const my = (mouseY / canvas.height - 0.5) * 0.04;
+    proj[12] += mx;
+    proj[13] -= my;
+
+    gl.useProgram(prog);
+    gl.uniformMatrix4fv(uProj, false, proj);
+    gl.uniform1f(uTime, t);
+    gl.uniform3f(uColor, 0.31, 0.56, 0.97); // #4f8ef7
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
+    gl.enableVertexAttribArray(aSize);
+    gl.vertexAttribPointer(aSize, 1, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, alphaBuf);
+    gl.enableVertexAttribArray(aAlpha);
+    gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 0, 0);
+
+    gl.drawArrays(gl.POINTS, 0, N);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ════════════════════════════════════
+   CURSOR
+════════════════════════════════════ */
+const cur = document.getElementById('cursor');
+const curR = document.getElementById('cursor-ring');
+let cx = 0, cy = 0;
+document.addEventListener('mousemove', e => {
+  cx = e.clientX; cy = e.clientY;
+  cur.style.left = cx+'px'; cur.style.top = cy+'px';
+  setTimeout(() => { curR.style.left = cx+'px'; curR.style.top = cy+'px'; }, 80);
+});
+document.querySelectorAll('a,button,.feat-card,.dl-card,.rank-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { cur.style.width='18px'; cur.style.height='18px'; curR.style.width='52px'; curR.style.height='52px'; });
+  el.addEventListener('mouseleave', () => { cur.style.width='10px'; cur.style.height='10px'; curR.style.width='36px'; curR.style.height='36px'; });
+});
+
+/* ════════════════════════════════════
+   INTRO ANIMATION
+════════════════════════════════════ */
+const INTRO_STEPS = [
+  () => {
+    introBox.innerHTML = `<div class="op-step">
+      <div class="intro-sys show">◈  SYSTEM ALERT — UNKNOWN ANOMALY DETECTED  ◈</div>
+      <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:rgba(79,142,247,.3);margin-top:14px">SCANNING...</div>
+    </div>`;
+  },
+  () => {
+    startScan();
+    introBox.innerHTML = `<div class="op-step">
+      <div class="intro-sys show">CONSCIOUSNESS VERIFIED</div>
+      <h1 style="font-family:'Orbitron',monospace;font-size:clamp(28px,7vw,64px);font-weight:900;color:#fff;letter-spacing:4px;line-height:1.2;text-shadow:0 0 40px rgba(79,142,247,.5)">A NEW<br>HUNTER<br>HAS AWAKENED</h1>
+    </div>`;
+  },
+  () => {
+    introBox.innerHTML = `<div class="op-step">
+      <div style="background:rgba(5,11,26,.97);border:1px solid rgba(79,142,247,.28);border-radius:10px;padding:22px 24px;text-align:left;max-width:420px;margin:0 auto">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:#4f8ef7;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(79,142,247,.2)">◈ HUNTER SYSTEM — GHOSTQUESTX</div>
+        ${[['PLATFORM','WINDOWS + ANDROID'],['VERSION','v2.0.0'],['STATUS','ACTIVE'],['RANK SYSTEM','E→D→C→B→A→S'],['CREDIT','AMLAN DEY']].map(([l,v],i)=>`
+          <div style="display:flex;justify-content:space-between;font-family:'Orbitron',monospace;font-size:12px;padding:7px 0;border-bottom:1px solid rgba(79,142,247,.07);opacity:0;animation:op-in .35s ${i*.16}s forwards">
+            <span style="color:rgba(122,150,200,.6)">${l}</span>
+            <span style="color:#ddeaff;font-weight:700;${l==='RANK SYSTEM'?'color:#fbbf24':l==='STATUS'?'color:#4f8ef7':''}">${v}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  },
+  () => {
+    introBox.innerHTML = `<div class="op-step">
+      <div class="intro-sys show">THE SYSTEM IS READY</div>
+      <div style="font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;color:rgba(221,234,255,.45);line-height:2.2;margin-top:10px">
+        TRACK YOUR DAILY QUESTS<br>LEVEL UP YOUR RANK<br>BECOME THE SHADOW MONARCH
+      </div>
+      <div class="intro-bar" id="introBar"></div>
+    </div>`;
+    setTimeout(() => { const b = document.getElementById('introBar'); if(b) b.classList.add('full'); }, 100);
+  },
+  () => {
+    introBox.innerHTML = `<div class="op-step"><div class="intro-arise show">ARISE</div></div>`;
+  }
+];
+
+const introBox = document.getElementById('introBox');
+let introStep = 0;
+let introTimers = [];
+
+function startScan() {
+  const scan = document.getElementById('introScan');
+  scan.style.top = '-4px';
+  scan.style.opacity = '0';
+  scan.style.display = 'block';
+  scan.style.animation = 'none';
+  requestAnimationFrame(() => { scan.style.animation = 'iscan 2s cubic-bezier(.4,0,.2,1) forwards'; });
+}
+
+function spawnIntroParticles() {
+  const c = document.getElementById('introParticles');
+  for (let i = 0; i < 25; i++) {
+    const d = document.createElement('div');
+    d.className = 'i-pt';
+    d.style.cssText = `left:${(i*19+7)%100}%;bottom:-4px;width:${1.5+(i%3)}px;height:${1.5+(i%3)}px;animation-delay:${(i*.22)%4}s;animation-duration:${3+(i%5)}s`;
+    c.appendChild(d);
+  }
+}
+
+function runIntro() {
+  spawnIntroParticles();
+  const delays = [300, 1400, 2500, 3700, 4700];
+  delays.forEach((d, i) => {
+    const t = setTimeout(() => {
+      INTRO_STEPS[i]();
+    }, d);
+    introTimers.push(t);
+  });
+  const finishT = setTimeout(finishIntro, 6000);
+  introTimers.push(finishT);
+}
+
+function finishIntro() {
+  const intro = document.getElementById('intro');
+  const site = document.getElementById('site');
+  intro.style.transition = 'opacity .7s';
+  intro.style.opacity = '0';
+  site.classList.add('visible');
+  setTimeout(() => {
+    intro.style.display = 'none';
+    triggerReveal();
+    startQuoteRotation();
+  }, 700);
+}
+
+function skipIntro() {
+  introTimers.forEach(clearTimeout);
+  finishIntro();
+}
+
+/* ════════════════════════════════════
+   SCROLL REVEAL
+════════════════════════════════════ */
+function triggerReveal() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+}
+
+/* ════════════════════════════════════
+   QUOTE ROTATION
+════════════════════════════════════ */
+const QUOTES = [
+  '"I alone level up."','"The weak don\'t choose how they die."','"Arise."',
+  '"Every hunter starts as prey."','"The dungeon forgives no hesitation."',
+  '"Power is earned. Never given."','"Face the abyss — or become it."',
+  '"Shadows obey only the strongest."','"The gate opens. Will you enter?"',
+  '"From the void, a monarch is born."'
+];
+let qi = 0;
+function startQuoteRotation() {
+  const el = document.getElementById('heroQuote');
+  if (!el) return;
+  setInterval(() => {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = QUOTES[qi % QUOTES.length];
+      el.style.opacity = '1';
+      qi++;
+    }, 400);
+  }, 5000);
+}
+
+/* ════════════════════════════════════
+   3D TILT ON CARDS
+════════════════════════════════════ */
+document.querySelectorAll('.tilt-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width  - 0.5;
+    const y = (e.clientY - r.top)  / r.height - 0.5;
+    card.style.transform = `perspective(700px) rotateY(${x*10}deg) rotateX(${-y*8}deg) translateY(-4px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = 'perspective(700px) rotateY(0) rotateX(0) translateY(0)';
+  });
+});
+
+/* ════════════════════════════════════
+   NAV SCROLL STYLE
+════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('mainNav');
+  if (window.scrollY > 60) {
+    nav.style.boxShadow = '0 4px 30px rgba(0,0,0,.5)';
+  } else {
+    nav.style.boxShadow = 'none';
+  }
+});
+
+/* Start intro */
+runIntro();
+</script>
+<style>
+@keyframes op-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+</style>
+</body>
+</html>
