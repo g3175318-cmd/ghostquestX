@@ -1,1 +1,1 @@
-just a anime themed ranking based TODO App
+Just a anime themed ranking based TODO App
